@@ -9,7 +9,7 @@ INPUTS=$(SAMPLE_FILE)
 
 # This program uses a copy of itself (main.cpp) as the sample test file
 run: $(EXECUTABLE).bin
-	cp main.cpp sampleFile.txt
+	# cp main.cpp sampleFile.txt
 	./$(EXECUTABLE).bin $(INPUTS)
 
 $(EXECUTABLE).bin: main.cpp
