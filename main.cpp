@@ -61,7 +61,7 @@ int main(int argc, char* argv[]) {
 				//todo
 			cout << "chunkSize = " << chunk_end - chunk_begin ;
 			cout << " \t[" << (void*)chunk_begin << " --> " << (void*)chunk_end << "]";
-			memcpy(chunk_begin, chunk_end-chunk_begin);
+//			memcpy(chunk_begin, chunk_end-chunk_begin);
 			
 
 			// set chunk begin to next chunk
