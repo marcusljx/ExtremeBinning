@@ -31,8 +31,6 @@ unsigned int fingerprint(unsigned char *arr_ptr) {	// simple hash using xor
 	return (unsigned int) (tally % FINGERPRINT_DIVISOR);	// result will fit definitely within (unsigned int)
 }
 
-
-
 int main(int argc, char* argv[]) {
 	// read file into mapped memory
 	int fd = open(argv[1], O_RDONLY);
@@ -63,19 +61,23 @@ int main(int argc, char* argv[]) {
 //			cout << "chunkSize = " << chunk_end - chunk_begin ;
 //			cout << " \t[" << (void*)chunk_begin << " --> " << (void*)chunk_end << "]";
 			unsigned char CHUNK[chunkSize];
-			unsigned char HASH[chunkSize];
+			unsigned char DIGEST[MD5_DIGEST_LENGTH];
+			unsigned char hash[MD5_DIGEST_LENGTH];
 			memcpy(CHUNK, chunk_begin, chunkSize);
-			MD5(CHUNK, chunkSize, HASH);
+			MD5((unsigned char *) &CHUNK, MD5_DIGEST_LENGTH, (unsigned char *) &DIGEST);
+			for(int j=0; j<MD5_DIGEST_LENGTH; j++) {
+				sprintf((char *) &hash[j * 2], "%02x", (unsigned int)DIGEST[j]);
+			}
 
-			cout << "[" << chunkSize << "] \t" << CHUNK << " --> " << HASH;
+			cout << "[" << chunkSize << "] \t" << CHUNK << " --> " << hash;
 
 			// set chunk begin to next chunk
 			chunk_begin = chunk_end + 1;
 			i += WINDOW_SIZE;	// shift window to next chunk
+			cout << endl;
 		} 
 
 
-		cout << endl;
 
 		// MD5(slidingWindow, WINDOW_SIZE, digest);
 		// cout << slidingWindow << endl;
