@@ -12,21 +12,23 @@
 using namespace std;
 
 #define WINDOW_SIZE 16
-#define FINGERPRINT_DIVISOR 2
-#define	FINGERPRINT_REMAINDER 1
+#define FINGERPRINT_DIVISOR 5
+#define SLIDINGWINDOW_DIVISOR 3
+#define SLIDINGWINDOW_REMAINDER 2
 
 void m_err(string error_message) {
 	perror(error_message.c_str());
 	exit(EXIT_FAILURE);
 }
 
-unsigned int xor_fingerprint(unsigned char* arr_ptr) {	// simple hash using xor
-	unsigned char tally = *arr_ptr;
+unsigned int fingerprint(unsigned char *arr_ptr) {	// simple hash using xor
+	unsigned long tally = 0;
 	int size = sizeof(arr_ptr)/ sizeof(unsigned char);
 	for(int i=1; i<size; i++) {
-		tally = tally ^ arr_ptr[i];
+		tally = (tally*10) + arr_ptr[i];	// Horner's Method?
 	}
-	return (unsigned int)tally;
+
+	return (unsigned int) (tally % FINGERPRINT_DIVISOR);	// result will fit definitely within (unsigned int)
 }
 
 
@@ -48,26 +50,28 @@ int main(int argc, char* argv[]) {
 	unsigned char* chunk_begin = contents;
 	unsigned char* chunk_end;
 
-	string chunk;
-
 	for(off_t i=0; i<(fileLength-WINDOW_SIZE); i++) {
 		memcpy(slidingWindow, (contents+i), WINDOW_SIZE);
 		
-		cout << xor_fingerprint(slidingWindow);
-		if( (xor_fingerprint(slidingWindow) % FINGERPRINT_DIVISOR == FINGERPRINT_REMAINDER) || (i+WINDOW_SIZE == fileLength-1 ) ){
-			cout << "(Y) \t";
+//		cout << fingerprint(slidingWindow);
+		if((fingerprint(slidingWindow) % SLIDINGWINDOW_DIVISOR == SLIDINGWINDOW_REMAINDER) || (i + WINDOW_SIZE == fileLength - 1 ) ){
+//			cout << "(Y) \t";
 			chunk_end = contents + i + WINDOW_SIZE;
-			// do things with chunk begin and end
-				//todo
-			cout << "chunkSize = " << chunk_end - chunk_begin ;
-			cout << " \t[" << (void*)chunk_begin << " --> " << (void*)chunk_end << "]";
-//			memcpy(chunk_begin, chunk_end-chunk_begin);
-			
+
+			// FIND CHUNK ID
+			size_t chunkSize = chunk_end - chunk_begin;
+//			cout << "chunkSize = " << chunk_end - chunk_begin ;
+//			cout << " \t[" << (void*)chunk_begin << " --> " << (void*)chunk_end << "]";
+			unsigned char CHUNK[chunkSize];
+			unsigned char HASH[chunkSize];
+			memcpy(CHUNK, chunk_begin, chunkSize);
+			MD5(CHUNK, chunkSize, HASH);
+
+			cout << "[" << chunkSize << "] \t" << CHUNK << " --> " << HASH;
 
 			// set chunk begin to next chunk
 			chunk_begin = chunk_end + 1;
 			i += WINDOW_SIZE;	// shift window to next chunk
-
 		} 
 
 
@@ -76,7 +80,7 @@ int main(int argc, char* argv[]) {
 		// MD5(slidingWindow, WINDOW_SIZE, digest);
 		// cout << slidingWindow << endl;
 		// cout << digest << endl;
-		// cout << xor_fingerprint(slidingWindow) << endl;
+		// cout << fingerprint(slidingWindow) << endl;
 	}
 
 	munmap(contents, fileLength);
