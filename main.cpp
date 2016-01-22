@@ -60,11 +60,9 @@ unsigned int fingerprint(unsigned char *arr_ptr) {	// simple fingerprint
 	return (unsigned int) (tally % FINGERPRINT_DIVISOR);	// result will fit definitely within (unsigned int)
 }
 
-
-
-int main(int argc, char* argv[]) {
+void chunkFile(char* filePath, Bin* binptr) {
 	// read file into mapped memory
-	int fd = open(argv[1], O_RDONLY);
+	int fd = open(filePath, O_RDONLY);
 	if(fd==-1) m_err("Error reading file.");
 
 	// assign mmap
@@ -79,12 +77,11 @@ int main(int argc, char* argv[]) {
 	unsigned char* chunk_begin = contents;
 	unsigned char* chunk_end;
 
-	Bin fileBin;
 	bin_entry* newEntry;
 
 	for(off_t i=0; i<(fileLength-WINDOW_SIZE); i++) {
 		memcpy(slidingWindow, (contents+i), WINDOW_SIZE);
-		
+
 		if((fingerprint(slidingWindow) % SLIDINGWINDOW_DIVISOR == SLIDINGWINDOW_REMAINDER) || (i + WINDOW_SIZE == fileLength - 1 ) ){
 			chunk_end = contents + i + WINDOW_SIZE;
 
@@ -92,14 +89,13 @@ int main(int argc, char* argv[]) {
 			size_t chunkSize = chunk_end - chunk_begin;
 			unsigned char CHUNK[chunkSize];
 			unsigned char DIGEST[MD5_DIGEST_LENGTH];
-			unsigned char ChunkID[MD5_DIGEST_LENGTH];
+			unsigned char ChunkID[MD5_DIGEST_LENGTH*2];
 			memcpy(CHUNK, chunk_begin, chunkSize);
 			MD5((unsigned char *) &CHUNK, MD5_DIGEST_LENGTH, (unsigned char *) &DIGEST);
 			for(int j=0; j<MD5_DIGEST_LENGTH; j++) {
 				sprintf((char *) &ChunkID[j * 2], "%02x", (unsigned int)DIGEST[j]);
 			}
-			cout << "[" << chunkSize << "] \t" << CHUNK << " --> " << ChunkID << " \t(" << strtol(
-					(const char *) ChunkID, NULL, 16) << ")";
+			cout << "[" << chunkSize << "] \t" << CHUNK << " --> " << ChunkID << " \t";
 
 			// create a new entry in the bin
 			newEntry = new bin_entry;
@@ -107,8 +103,8 @@ int main(int argc, char* argv[]) {
 
 			newEntry->chunkID = temp;
 			newEntry->chunkSize = chunkSize;
-			fileBin.insert(newEntry);
-			cout << "fileBin size = " << fileBin.size() << endl;
+			binptr->insert(newEntry);
+			cout << "binptr size = " << binptr->size() << endl;
 
 			// set chunk begin to next chunk
 			chunk_begin = chunk_end + 1;
@@ -117,15 +113,22 @@ int main(int argc, char* argv[]) {
 		}
 	}
 
-	// Representative Chunk ID is smallest value
-	string repChunkID = (*fileBin.begin())->chunkID;
-	string lastID = (*fileBin.rbegin())->chunkID;
+	munmap(contents, fileLength);
+}
 
-	cout << "Total number of Chunks = " << fileBin.size() << endl;
+
+int main(int argc, char* argv[]) {
+	Bin* binptr = new Bin;
+	chunkFile(argv[1], binptr);
+
+	// Representative Chunk ID is smallest value
+	string repChunkID = (*binptr->begin())->chunkID;
+	string lastID = (*binptr->rbegin())->chunkID;
+
+	cout << "Total number of Chunks = " << binptr->size() << endl;
 
 	cout << "Representative Chunk ID: \t" << repChunkID << endl;
 	cout << "Last Chunk ID: \t" << lastID << endl;
 
-	munmap(contents, fileLength);
 	return 0;
 }
