@@ -27,8 +27,8 @@ public:
 	PrimaryIndex();
 	~PrimaryIndex();
 
-	void addEntry(Bin* binptr, string hash, string BinPath);	// adds an entry based on representative chunkID
-	PrimaryIndexEntry findEntry(Bin* binptr);					// finds an entry based on representative chunkID, returns whole entry
+	void addEntry(string repChunkId, string hash, string BinPath);	// adds an entry based on representative chunkID
+	PrimaryIndexEntry findEntry(string repChunkId);					// finds an entry based on representative chunkID, returns whole entry
 
 
 };

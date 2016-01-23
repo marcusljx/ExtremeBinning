@@ -103,19 +103,25 @@ void chunkFile(char* filePath, Bin* binptr) {
 	munmap(contents, fileLength);
 }
 
-
-int main(int argc, char* argv[]) {
+void backupFile(char *filepath, char *destinationPath) {	// process for backing up a file
 	Bin* binptr = new Bin;
-	chunkFile(argv[1], binptr);
+	chunkFile(filepath, binptr);
 
 	// Representative Chunk ID is smallest value
 	string repChunkID = (binptr->begin())->chunkID;
-	string lastID = (binptr->rbegin())->chunkID;
-
 	cout << "Total number of Chunks = " << binptr->size() << endl;
-
 	cout << "Representative Chunk ID: \t" << repChunkID << endl;
-	cout << "Last Chunk ID: \t" << lastID << endl;
+
+
+
+}
+
+int main(int argc, char* argv[]) {
+
+	if(argv[0] == "-b") {	// backup directory
+		//todo: loop through all files in directory recursively.
+		backupFile(argv[1], argv[2]);
+	}
 
 	return 0;
 }
