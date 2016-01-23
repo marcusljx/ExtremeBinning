@@ -4,7 +4,7 @@ project(ExtremeBinning)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -lssl -lcrypto")
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/Modules/")
 
-set(SOURCE_FILES main.cpp)
+set(SOURCE_FILES main.cpp PrimaryIndex.cpp PrimaryIndex.h XB_includes.h)
 add_executable(ExtremeBinning ${SOURCE_FILES})
 
 # OpenSSL
