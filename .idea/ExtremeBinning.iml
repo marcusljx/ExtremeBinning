@@ -2,8 +2,11 @@
 <module type="CPP_MODULE" version="4">
   <component name="NewModuleRootManager">
     <content url="file://$MODULE_DIR$">
-      <sourceFolder url="file://$MODULE_DIR$/main.cpp" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/CMakeLists.txt" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/main.cpp" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/PrimaryIndex.h" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/PrimaryIndex.cpp" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/XB_includes.h" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/cmake/Modules/FindOpenSSL.cmake" isTestSource="false" />
     </content>
     <orderEntry type="sourceFolder" forTests="false" />

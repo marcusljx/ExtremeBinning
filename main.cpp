@@ -8,6 +8,7 @@
 #include <cstring>
 #include <map>
 #include <bits/stl_set.h>
+#include "XB_includes.h"
 
 using namespace std;
 
@@ -16,12 +17,7 @@ using namespace std;
 #define SLIDINGWINDOW_DIVISOR 3
 #define SLIDINGWINDOW_REMAINDER 2
 
-//======================================
-struct bin_entry {
-	string chunkID;
-	size_t chunkSize;
-};
-
+//extern function declared in XB_includes.h
 bool compareHexStrings(string A, string B) {
 	if(A.size() == B.size()) { // sizes same, compare characters
 		for(int i=0; i<A.size(); i++) {
@@ -35,15 +31,6 @@ bool compareHexStrings(string A, string B) {
 	// if sizes doesn't match, order by size (clearly 0x100 > 0xff)
 	return (A.size() < B.size());
 }
-
-struct chunkIDcompare {
-	bool operator() (const bin_entry* A, const bin_entry* B) const {	// assuming all chunkID's size is same.
-		return compareHexStrings(A->chunkID, B->chunkID);
-	}
-};
-
-typedef set<bin_entry* , chunkIDcompare> Bin;
-
 //======================================
 void m_err(string error_message) {
 	perror(error_message.c_str());
@@ -77,7 +64,7 @@ void chunkFile(char* filePath, Bin* binptr) {
 	unsigned char* chunk_begin = contents;
 	unsigned char* chunk_end;
 
-	bin_entry* newEntry;
+//	bin_entry* newEntry;
 
 	for(off_t i=0; i<(fileLength-WINDOW_SIZE); i++) {
 		memcpy(slidingWindow, (contents+i), WINDOW_SIZE);
@@ -98,11 +85,11 @@ void chunkFile(char* filePath, Bin* binptr) {
 			cout << "[" << chunkSize << "] \t" << CHUNK << " --> " << ChunkID << " \t";
 
 			// create a new entry in the bin
-			newEntry = new bin_entry;
+			bin_entry newEntry;
 			string temp(reinterpret_cast<const char*> (ChunkID), strlen((const char *) ChunkID));
 
-			newEntry->chunkID = temp;
-			newEntry->chunkSize = chunkSize;
+			newEntry.chunkID = temp;
+			newEntry.chunkSize = chunkSize;
 			binptr->insert(newEntry);
 			cout << "binptr size = " << binptr->size() << endl;
 
@@ -122,8 +109,8 @@ int main(int argc, char* argv[]) {
 	chunkFile(argv[1], binptr);
 
 	// Representative Chunk ID is smallest value
-	string repChunkID = (*binptr->begin())->chunkID;
-	string lastID = (*binptr->rbegin())->chunkID;
+	string repChunkID = (binptr->begin())->chunkID;
+	string lastID = (binptr->rbegin())->chunkID;
 
 	cout << "Total number of Chunks = " << binptr->size() << endl;
 
