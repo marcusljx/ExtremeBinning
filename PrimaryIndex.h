@@ -16,19 +16,19 @@ using namespace std;
 struct PrimaryIndexEntry {
 	string RepresentativeChunkID;
 	string WholeFileHash;
-	void* BinPointer;
+	string BinPath;
 };
 
 class PrimaryIndex {
 private:
-	vector<PrimaryIndexEntry*> index;
+	vector<PrimaryIndexEntry> index;
 
 public:
 	PrimaryIndex();
 	~PrimaryIndex();
 
-	void addEntry(Bin* binptr);		// adds an entry based on representative chunkID
-	PrimaryIndexEntry* findEntry(Bin* binptr);	// finds an entry based on representative chunkID, returns whole entry
+	void addEntry(Bin* binptr, string hash, string BinPath);	// adds an entry based on representative chunkID
+	PrimaryIndexEntry findEntry(Bin* binptr);					// finds an entry based on representative chunkID, returns whole entry
 
 
 };
