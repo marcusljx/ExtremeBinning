@@ -6,12 +6,16 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <cstring>
+#include <string>
 #include <map>
 #include <bits/stl_set.h>
 #include "XB_includes.h"
 #include "PrimaryIndex.h"
+#include <boost/filesystem.hpp>
+#include <boost/foreach.hpp>
 
 using namespace std;
+using namespace boost::filesystem;
 
 #define WINDOW_SIZE 16
 #define FINGERPRINT_DIVISOR 5
@@ -89,10 +93,12 @@ void chunkFile(char* filePath, Bin* binptr) {
 
 			// create a new entry in the bin
 			bin_entry newEntry;
-			string temp(reinterpret_cast<const char*> (ChunkID), strlen((const char *) ChunkID));
+			string tempID(reinterpret_cast<const char*> (ChunkID), strlen((const char *) ChunkID));
+			string tempChunk(reinterpret_cast<const char*> (CHUNK), strlen((const char *) CHUNK));
 
-			newEntry.chunkID = temp;
+			newEntry.chunkID = tempID;
 			newEntry.chunkSize = chunkSize;
+			newEntry.chunkContents = tempChunk;
 			binptr->insert(newEntry);
 			cout << "binptr size = " << binptr->size() << endl;
 
@@ -128,8 +134,19 @@ int main(int argc, char* argv[]) {
 	primaryIndex = new PrimaryIndex;
 
 	if(argv[0] == "-b") {	// backup directory
-		//todo: loop through all files in directory recursively.
-		backupFile(argv[1], argv[2]);
+		string relativePath(argv[2]);
+		path p = current_path();
+		string dirPath = p.leaf() + relativePath;
+		p.remove_leaf() /= dirPath;
+		cout << p << endl;
+//
+//		directory_iterator it(p);
+//
+//		while(it != directory_iterator{}) {	// loop through all files and perform backup
+//			cout << it->path() << endl;
+////			backupFile((char *) it->path().c_str(), argv[2]);
+//		}
+
 	}
 
 	return 0;
