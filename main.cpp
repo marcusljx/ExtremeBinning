@@ -9,6 +9,7 @@
 #include <map>
 #include <bits/stl_set.h>
 #include "XB_includes.h"
+#include "PrimaryIndex.h"
 
 using namespace std;
 
@@ -16,6 +17,8 @@ using namespace std;
 #define FINGERPRINT_DIVISOR 5
 #define SLIDINGWINDOW_DIVISOR 3
 #define SLIDINGWINDOW_REMAINDER 2
+
+PrimaryIndex* primaryIndex;
 
 //extern function declared in XB_includes.h
 bool compareHexStrings(string A, string B) {
@@ -103,6 +106,10 @@ void chunkFile(char* filePath, Bin* binptr) {
 	munmap(contents, fileLength);
 }
 
+void writeBinToFile(char* destinationPath, Bin* binptr) {	// writes a bin to disk
+
+}
+
 void backupFile(char *filepath, char *destinationPath) {	// process for backing up a file
 	Bin* binptr = new Bin;
 	chunkFile(filepath, binptr);
@@ -112,11 +119,13 @@ void backupFile(char *filepath, char *destinationPath) {	// process for backing 
 	cout << "Total number of Chunks = " << binptr->size() << endl;
 	cout << "Representative Chunk ID: \t" << repChunkID << endl;
 
-
+	//todo: check if repChunkID found in primaryIndex and branch as necessary
 
 }
 
 int main(int argc, char* argv[]) {
+	// Initialise Primary Index in heap
+	primaryIndex = new PrimaryIndex;
 
 	if(argv[0] == "-b") {	// backup directory
 		//todo: loop through all files in directory recursively.

@@ -12,3 +12,8 @@ find_package(OpenSSL REQUIRED)
 include_directories(${OPENSSL_INCLUDE_DIRS})
 set(LIBS ${LIBS} ${OPENSSL_LIBRARIES})
 target_link_libraries(${PROJECT_NAME} ${LIBS})
+
+# Boost
+set(BOOST_ROOT /usr/local/src/boost_1_60_0)
+find_package(Boost 1.60.0 REQUIRED)
+include_directories(${BOOST_INCLUDEDIR})
