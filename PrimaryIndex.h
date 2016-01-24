@@ -21,14 +21,14 @@ struct PrimaryIndexEntry {
 
 class PrimaryIndex {
 private:
-	vector<PrimaryIndexEntry> index;
+	vector<PrimaryIndexEntry*> index;
 
 public:
 	PrimaryIndex();
 	~PrimaryIndex();
 
 	void addEntry(string repChunkId, string hash, string BinPath);	// adds an entry based on representative chunkID
-	PrimaryIndexEntry findEntry(string repChunkId);					// finds an entry based on representative chunkID, returns whole entry
+	PrimaryIndexEntry* findEntry(string repChunkId);					// finds an entry based on representative chunkID, returns whole entry
 
 
 };
