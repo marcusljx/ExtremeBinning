@@ -9,13 +9,11 @@
 #include <string>
 #include <map>
 #include <bits/stl_set.h>
+#include <linux/limits.h>
 #include "XB_includes.h"
 #include "PrimaryIndex.h"
-#include <boost/filesystem.hpp>
-#include <boost/foreach.hpp>
 
 using namespace std;
-using namespace boost::filesystem;
 
 #define WINDOW_SIZE 16
 #define FINGERPRINT_DIVISOR 5
@@ -38,6 +36,7 @@ bool compareHexStrings(string A, string B) {
 	// if sizes doesn't match, order by size (clearly 0x100 > 0xff)
 	return (A.size() < B.size());
 }
+
 //======================================
 void m_err(string error_message) {
 	perror(error_message.c_str());
@@ -112,11 +111,13 @@ void chunkFile(char* filePath, Bin* binptr) {
 	munmap(contents, fileLength);
 }
 
-void writeBinToFile(char* destinationPath, Bin* binptr) {	// writes a bin to disk
+void writeBinToDisk(char *destinationPath, Bin *binptr) {	// writes a bin to disk
+	//todo: write chunks to disk (files in destination)
 
+	//todo: write bin to disk (single file with details)
 }
 
-void backupFile(char *filepath, char *destinationPath) {	// process for backing up a file
+void backupFile(char *filepath, char *destinationDirPath) {	// process for backing up a file
 	Bin* binptr = new Bin;
 	chunkFile(filepath, binptr);
 
@@ -129,24 +130,36 @@ void backupFile(char *filepath, char *destinationPath) {	// process for backing 
 
 }
 
+void backupDir(char* targetDirPath, char* destinationDirPath) {
+	//todo: loop through files in dir and perform backup on each
+
+}
+
+
+
 int main(int argc, char* argv[]) {
 	// Initialise Primary Index in heap
 	primaryIndex = new PrimaryIndex;
 
-	if(argv[0] == "-b") {	// backup directory
-		string relativePath(argv[2]);
-		path p = current_path();
-		string dirPath = p.leaf() + relativePath;
-		p.remove_leaf() /= dirPath;
-		cout << p << endl;
-//
-//		directory_iterator it(p);
-//
-//		while(it != directory_iterator{}) {	// loop through all files and perform backup
-//			cout << it->path() << endl;
-////			backupFile((char *) it->path().c_str(), argv[2]);
-//		}
+	cout << "0:" << argv[0] << endl;
+	cout << "1:" << argv[1] << endl;
+	cout << "2:" << argv[2] << endl;
+	cout << "3:" << argv[3] << endl;
 
+	if(strcmp(argv[1], "-b")==0) {	// backup directory
+		// set fullpath of target dir
+		char targetDir[PATH_MAX];
+		getcwd(targetDir, PATH_MAX);
+		strcat(targetDir, "/");
+		strcat(targetDir, argv[2]);
+
+		// set fullpath of destination dir
+		char destDir[PATH_MAX];
+		getcwd(destDir, PATH_MAX);
+		strcat(destDir, "/");
+		strcat(destDir, argv[3]);
+
+		backupDir(targetDir, destDir);
 	}
 
 	return 0;

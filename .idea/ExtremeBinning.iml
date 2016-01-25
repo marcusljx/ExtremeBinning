@@ -7,7 +7,6 @@
       <sourceFolder url="file://$MODULE_DIR$/PrimaryIndex.h" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/PrimaryIndex.cpp" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/XB_includes.h" isTestSource="false" />
-      <sourceFolder url="file://$MODULE_DIR$/cmake/Modules/FindBoost.cmake" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/cmake/Modules/FindOpenSSL.cmake" isTestSource="false" />
     </content>
     <orderEntry type="sourceFolder" forTests="false" />

@@ -14,9 +14,9 @@ set(LIBS ${LIBS} ${OPENSSL_LIBRARIES})
 
 # Boost
 #set(BOOST_ROOT /usr/local/src/boost_1_60_0)
-find_package(Boost REQUIRED)
-include_directories(${BOOST_INCLUDEDIR})
-set(LIBS ${LIBS} ${BOOST_LIBRARIES})
+#find_package(Boost REQUIRED)
+#include_directories(${BOOST_INCLUDEDIR})
+#set(LIBS ${LIBS} ${BOOST_LIBRARIES})
 
 
 # Link all libs
