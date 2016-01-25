@@ -293,21 +293,24 @@ int main(int argc, char* argv[]) {
 	// Initialise Primary Index in heap
 	primaryIndex = new PrimaryIndex;
 
-	if(strcmp(argv[1], "-b")==0) {	// backup directory
-		// set fullpath of target dir
-		char cwd[PATH_MAX];
-		getcwd(cwd, PATH_MAX);
-
-		string targetDir(cwd);
-		targetDir += "/" + string(argv[2]);
-		initialTargetDirPathLength = targetDir.size();	// set length of path (used for finding relative path for recipe)
-
-		// set fullpath of destination dir
-		string destDir(cwd);
-		destDir += "/" + string(argv[3]);
-
-		backupDir(targetDir, destDir);
+	if(argc != 3) {
+		m_err("Error: Too Few Arguments\nUsage: XB_Backup <TargetDir> <DestinationDir>");
 	}
+
+	// set fullpath of target dir
+	char cwd[PATH_MAX];
+	getcwd(cwd, PATH_MAX);
+
+	string targetDir(cwd);
+	targetDir += "/" + string(argv[1]);
+	initialTargetDirPathLength = targetDir.size();	// set length of path (used for finding relative path for recipe)
+
+	// set fullpath of destination dir
+	string destDir(cwd);
+	destDir += "/" + string(argv[2]);
+
+	backupDir(targetDir, destDir);
+
 
 	return 0;
 }
