@@ -84,7 +84,7 @@ string md5_hash(unsigned char* input, size_t size) {	// 32-bit md5 hash
 	return result;
 }
 
-void chunkFile(char* filePath, Bin* binptr) {
+void chunkFile(char* filePath, Bin* binptr, vector<string>* recipe) {
 	mappedFile* mf = mapFileIntoMem_read(filePath);
 	unsigned char* contents = mf->contents_ptr;
 	size_t fileLength = mf->contents_size;
@@ -94,6 +94,8 @@ void chunkFile(char* filePath, Bin* binptr) {
 
 	unsigned char* chunk_begin = contents;
 	unsigned char* chunk_end;
+
+	int r=0;	// iterator for recipe
 
 	for(off_t i=0; i<(fileLength-WINDOW_SIZE); i++) {
 		memcpy(slidingWindow, (contents+i), WINDOW_SIZE);
@@ -114,21 +116,21 @@ void chunkFile(char* filePath, Bin* binptr) {
 			newEntry.chunkSize = chunkSize;
 			newEntry.chunkContents = string(reinterpret_cast<const char*> (CHUNK), strlen((const char *) CHUNK));;
 			binptr->insert(newEntry);
+			recipe->push_back(newEntry.chunkID);
 
-			cout << "[" << chunkSize << "] \t" << newEntry.chunkContents << " --> " << newEntry.chunkID << " \t";
-			cout << "binptr size = " << binptr->size() << endl;
+//			cout << "[" << chunkSize << "] \t" << newEntry.chunkContents << " --> " << newEntry.chunkID << " \t";
+//			cout << "binptr size = " << binptr->size() << endl;
 
 			// set chunk begin to next chunk
 			chunk_begin = chunk_end + 1;
 			i += WINDOW_SIZE;	// shift window to next chunk
-			cout << endl;
 		}
 	}
 
 	munmap(contents, fileLength);
 }
 
-string writeBinToDisk(char *destinationPath, Bin *binptr, string wholeFileHash) {	// writes a bin to disk, returns path to bin location
+string writeBinToDisk(char *destinationPath, Bin *binptr, vector<string>* recipe_ptr, string wholeFileHash) {	// writes a bin to disk, returns path to bin location
 	string repChunkID = binptr->begin()->chunkID;	// using representative chunk id as directory name
 	char destinationDirPath[PATH_MAX];
 	strcpy(destinationDirPath, destinationPath);
@@ -142,9 +144,18 @@ string writeBinToDisk(char *destinationPath, Bin *binptr, string wholeFileHash) 
 			m_err("Error Creating Chunks Folder " + repChunkID);	// otherwise exit.
 		}
 	}
-	// Write chunks to directory
+	// Prepare to write chunks to directory
 	set<bin_entry , binEntryCompare>::iterator iter = binptr->begin();
 	char destinationFilePath[PATH_MAX];
+	ofstream fs_chunks;
+
+	// Prepare to write chunk info to bin
+	char binFile[PATH_MAX];
+	strcpy(binFile, destinationDirPath);
+	strcat(binFile, "_bin.txt");
+	ofstream fs_forBinAndRecipeFiles;
+	fs_forBinAndRecipeFiles.open(binFile);
+
 	while(iter != binptr->end()) {
 		// create file in directory
 		strcpy(destinationFilePath, destinationDirPath);
@@ -152,23 +163,45 @@ string writeBinToDisk(char *destinationPath, Bin *binptr, string wholeFileHash) 
 		strcat(destinationFilePath, (*iter).chunkID.c_str());
 
 		// write chunk content to chunk file (OVERWRITES FILE WITH SAME DATA(?) IF FILE EXISTS)
-		ofstream fs;
-		fs.open(destinationFilePath);
-		fs << (*iter).chunkContents;
-		fs.close();
+		fs_chunks.open(destinationFilePath);
+		fs_chunks << (*iter).chunkContents;
+		fs_chunks.close();
+
+		// Write chunk info to binFile (chunk is already unique)
+		string line = (*iter).chunkID + " \t" + to_string((*iter).chunkSize) + "\n";
+		fs_forBinAndRecipeFiles << line;
 
 		iter++;
 	}
-
-	//todo: write bin to disk (single file with details)	// eg. <repChunkId>_B.txt
-
+	fs_forBinAndRecipeFiles.close();
 
 	//todo: write file recipe to disk
+	// File recipe includes original path, binID, and chunk order. File name is <wholeFileHash>.recipe
+	char recipeFile[PATH_MAX];
+	strcpy(recipeFile, destinationPath);
+	strcat(recipeFile, "r_");	// r for recipe
+	strcat(recipeFile, wholeFileHash.c_str());
+	strcat(recipeFile, ".recipe");
+
+	cout << recipeFile << endl;
+
+	// Write order of ChunkIDs to recipe file
+	fs_forBinAndRecipeFiles.open(recipeFile);
+	fs_forBinAndRecipeFiles << repChunkID + "\n";	// add the binID (representative chunkID)
+	for(int i=0; i<recipe_ptr->size(); i++) {	// first entry is original filepath, the rest are order of the chunks
+		fs_forBinAndRecipeFiles << (*recipe_ptr)[i] + "\n";
+	}
+	fs_forBinAndRecipeFiles.close();
+
+	return string(destinationDirPath);
 }
 
 void backupFile(char *filepath, char *destinationDirPath) {	// process for backing up a file
+	// Chunk file into bin object
 	Bin* binptr = new Bin;
-	chunkFile(filepath, binptr);
+	vector<string>*recipe_ptr = new vector<string>;
+	recipe_ptr->push_back(string(filepath));	// first entry in recipe is the original filepath.
+	chunkFile(filepath, binptr, recipe_ptr);
 
 	// Representative Chunk ID is smallest value
 	string repChunkID = (binptr->begin())->chunkID;
@@ -183,8 +216,8 @@ void backupFile(char *filepath, char *destinationDirPath) {	// process for backi
 	//todo: check if repChunkID found in primaryIndex and branch as necessary
 	PrimaryIndexEntry* EntryFound = primaryIndex->findEntry(repChunkID);
 	if( EntryFound == nullptr) {	// entry does not exists
-		// Write Chunks to disk
-		string binPath = writeBinToDisk(destinationDirPath, binptr, wholeFileHash);
+		// Write Chunks, Bin, and Recipe to disk
+		string binPath = writeBinToDisk(destinationDirPath, binptr, recipe_ptr, wholeFileHash);
 
 		// Add bin as entry to primary index
 		primaryIndex->addEntry(repChunkID, wholeFileHash, binPath);
