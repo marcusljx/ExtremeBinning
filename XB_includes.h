@@ -15,7 +15,7 @@ using namespace std;
 struct bin_entry {
 	string chunkID;
 	size_t chunkSize;
-	string chunkContents;
+	string chunkContents = "";
 };
 
 extern bool compareHexStrings(string A, string B);

@@ -6,14 +6,12 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <cstring>
-#include <string>
 #include <map>
 #include <bits/stl_set.h>
 #include <linux/limits.h>
 #include <dirent.h>
 #include <sys/stat.h>
 #include <fstream>
-#include <limits>
 #include "XB_includes.h"
 #include "PrimaryIndex.h"
 
@@ -73,15 +71,22 @@ unsigned int fingerprint(unsigned char *arr_ptr) {	// simple fingerprint
 }
 
 string md5_hash(unsigned char* input, size_t size) {	// 32-bit md5 hash
-	unsigned char CHUNK[size];
-	unsigned char DIGEST[MD5_DIGEST_LENGTH];
-	unsigned char hash[MD5_DIGEST_LENGTH * 2];
-	memcpy(CHUNK, input, size);
-	MD5((unsigned char *) &CHUNK, MD5_DIGEST_LENGTH, (unsigned char *) &DIGEST);
-	for(int j=0; j<MD5_DIGEST_LENGTH; j++) {
-		sprintf((char *) &hash[j * 2], "%02x", (unsigned int)DIGEST[j]);
-	}
+//	unsigned char DIGEST[MD5_DIGEST_LENGTH];
+//	unsigned char hash[33];
+//	MD5((unsigned char *) &input, strlen((const char *) input), (unsigned char *) &DIGEST);
 
+
+	unsigned char digest[16];
+	MD5_CTX ctx;
+	MD5_Init(&ctx);
+	MD5_Update(&ctx, input, strlen((const char *) input));
+	MD5_Final(digest, &ctx);
+
+	char hash[33];
+
+	for(int j=0; j<16; j++) {
+		sprintf((char *) &hash[j * 2], "%02x", (unsigned int)digest[j]);
+	}
 	string result(reinterpret_cast<const char*> (hash), strlen((const char *) hash));
 	return result;
 }
@@ -96,8 +101,6 @@ void chunkFile(char* filePath, Bin* binptr, vector<string>* recipe) {
 
 	unsigned char* chunk_begin = contents;
 	unsigned char* chunk_end;
-
-	int r=0;	// iterator for recipe
 
 	for(off_t i=0; i<(fileLength-WINDOW_SIZE); i++) {
 		memcpy(slidingWindow, (contents+i), WINDOW_SIZE);
@@ -132,7 +135,7 @@ void chunkFile(char* filePath, Bin* binptr, vector<string>* recipe) {
 	munmap(contents, fileLength);
 }
 
-string writeBinToDisk(char *destinationPath, Bin *binptr, vector<string>* recipe_ptr, string wholeFileHash) {	// writes a bin to disk, returns path to bin location
+string writeBinAndRecipeToDisk(char *destinationPath, Bin *binptr, vector<string> *recipe_ptr, string wholeFileHash) {	// writes a bin to disk, returns path to bin location
 	string repChunkID = binptr->begin()->chunkID;	// using representative chunk id as directory name
 	char destinationDirPath[PATH_MAX];
 	strcpy(destinationDirPath, destinationPath);
@@ -164,9 +167,11 @@ string writeBinToDisk(char *destinationPath, Bin *binptr, vector<string>* recipe
 		strcat(destinationFilePath, "/");
 		strcat(destinationFilePath, (*iter).chunkID.c_str());
 
-		// write chunk content to chunk file (OVERWRITES FILE WITH SAME DATA(?) IF FILE EXISTS)
+		// write chunk content to chunk file if chunk has content (no content means it is a duplicate chunk. Chunk already exists)
 		fs_chunks.open(destinationFilePath);
-		fs_chunks << (*iter).chunkContents;
+		if((*iter).chunkContents.size() != 0) {
+			fs_chunks << (*iter).chunkContents;
+		}
 		fs_chunks.close();
 
 		// Write chunk info to binFile (chunk is already unique)
@@ -195,6 +200,18 @@ string writeBinToDisk(char *destinationPath, Bin *binptr, vector<string>* recipe
 	return string(binFilePath);
 }
 
+void readBinFile(string binFilePath, Bin* binptr) {
+	ifstream fs(binFilePath.c_str());
+
+	string cID;
+	while(fs >> cID) {
+		bin_entry be;
+		be.chunkID = cID;
+		fs >> be.chunkSize;
+		binptr->insert(be);
+	}
+}
+
 void addTargetPathToRecipeFile(char* recipeFilePath, string originalFilePath) {	// inserts a duplicate file's filepath in a recipe
 	string lineToAdd = originalFilePath + "\n";
 
@@ -212,6 +229,8 @@ void addTargetPathToRecipeFile(char* recipeFilePath, string originalFilePath) {	
 }
 
 void backupFile(char *filepath, char *destinationDirPath) {	// process for backing up a file
+	cout << "Backing up [" << filepath << "] \t";
+
 	// Chunk file into bin object
 	Bin* binptr = new Bin;
 	vector<string>*recipe_ptr = new vector<string>;
@@ -229,18 +248,23 @@ void backupFile(char *filepath, char *destinationDirPath) {	// process for backi
 	// Calculate whole file hash
 	mappedFile* mfile = mapFileIntoMem_read(filepath);
 	string wholeFileHash = md5_hash(mfile->contents_ptr, mfile->contents_size);
+	cout << "## \t" << wholeFileHash << endl;
 
 	PrimaryIndexEntry*found_piEntry = primaryIndex->findEntry(repChunkID);
 	if(found_piEntry == nullptr) {	// entry does not exist
 		// Write Chunks, Bin, and Recipe to disk
-		string binFilePath = writeBinToDisk(destinationDirPath, binptr, recipe_ptr, wholeFileHash);
+		string binFilePath = writeBinAndRecipeToDisk(destinationDirPath, binptr, recipe_ptr, wholeFileHash);
 		// Add bin (entry) to primary index
 		primaryIndex->addEntry(repChunkID, wholeFileHash, binFilePath);
 
 	} else {	// entry exists
 		// Compare whole file hash
 		if(found_piEntry->WholeFileHash != wholeFileHash) {	// if whole file hash doesn't match
-			//todo: read binFile and add binFile's chunkIDs into current bin (same as adding current bin's entries into binFile, because all duplicates will be removed)
+			// Load bin from disk and add unique enties to current bin
+			readBinFile(found_piEntry->BinPath, binptr);
+
+			// Write new current bin to disk
+			writeBinAndRecipeToDisk(destinationDirPath, binptr, recipe_ptr, wholeFileHash);
 
 		} else {
 			// Reconstruct Recipe File Path
@@ -252,9 +276,8 @@ void backupFile(char *filepath, char *destinationDirPath) {	// process for backi
 
 			addTargetPathToRecipeFile(recipeFilePath, (*recipe_ptr)[0]);	// first entry in recipe is target file path
 		}
-
 	}
-
+	cout << endl;
 }
 
 void backupDir(char* targetDirPath, char* destinationDirPath) {
@@ -277,11 +300,12 @@ void backupDir(char* targetDirPath, char* destinationDirPath) {
 
 			// item is not another directory
 			if(S_ISREG(st.st_mode)) {
-
 				// perform backup on file
 				backupFile(filePath, destinationDirPath);
 			} else {
-				cout << "Item is Directory" << endl;
+				// Recursive backup on Directory
+				strcat(filePath, "/");
+				backupDir(filePath, destinationDirPath);
 			}
 		}
 		item = readdir(dirD);
