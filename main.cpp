@@ -68,7 +68,7 @@ unsigned int fingerprint(unsigned char *arr_ptr) {	// simple fingerprint
 	return (unsigned int) (tally % FINGERPRINT_DIVISOR);	// result will fit definitely within (unsigned int)
 }
 
-string md5_hash(unsigned char* input, size_t size) {
+string md5_hash(unsigned char* input, size_t size) {	// 32-bit md5 hash
 	unsigned char CHUNK[size];
 	unsigned char DIGEST[MD5_DIGEST_LENGTH];
 	unsigned char hash[MD5_DIGEST_LENGTH * 2];
@@ -126,10 +126,10 @@ void chunkFile(char* filePath, Bin* binptr) {
 	munmap(contents, fileLength);
 }
 
-void writeBinToDisk(char *destinationPath, Bin *binptr) {	// writes a bin to disk
-	//todo: write chunks to disk (files in destination)
+string writeBinToDisk(char *destinationPath, Bin *binptr, string wholeFileHash) {	// writes a bin to disk, returns path to bin location
+	//todo: write chunks to disk (files in binfolder)		// eg. <repChunkId>/
 
-	//todo: write bin to disk (single file with details)
+	//todo: write bin to disk (single file with details)	// eg. <repChunkId>_B.txt
 }
 
 void backupFile(char *filepath, char *destinationDirPath) {	// process for backing up a file
@@ -141,13 +141,18 @@ void backupFile(char *filepath, char *destinationDirPath) {	// process for backi
 	cout << "Total number of Chunks = " << binptr->size() << endl;
 	cout << "Representative Chunk ID: \t" << repChunkID << endl;
 
-	//todo: calculate whole file hash
-
+	// Calculate whole file hash
+	mappedFile* mfile = mapFileIntoMem_read(filepath);
+	string wholeFileHash = md5_hash(mfile->contents_ptr, mfile->contents_size);
+	cout << "Whole File Hash: " << wholeFileHash << endl;
 
 	//todo: check if repChunkID found in primaryIndex and branch as necessary
 	PrimaryIndexEntry* EntryFound = primaryIndex->findEntry(repChunkID);
 	if( EntryFound == nullptr) {	// entry does not exists
+		string binPath = writeBinToDisk(destinationDirPath, binptr, wholeFileHash);
 
+		// Add bin as entry to primary index
+		primaryIndex->addEntry(repChunkID, wholeFileHash, binPath);
 	}
 
 }
@@ -159,7 +164,7 @@ void backupDir(char* targetDirPath, char* destinationDirPath) {
 	}
 
 	struct dirent* dir = readdir(dirD);	// read first file
-	while(dir) {	// continue while directory contains items
+	while(dir) {	// read through directory items
 		char *name = dir->d_name;
 
 		if ((strcmp(name, ".") != 0) && (strcmp(name, "..") != 0)) {    // don't operate on parent directories
