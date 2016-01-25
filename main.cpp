@@ -10,6 +10,7 @@
 #include <map>
 #include <bits/stl_set.h>
 #include <linux/limits.h>
+#include <dirent.h>
 #include "XB_includes.h"
 #include "PrimaryIndex.h"
 
@@ -131,8 +132,27 @@ void backupFile(char *filepath, char *destinationDirPath) {	// process for backi
 }
 
 void backupDir(char* targetDirPath, char* destinationDirPath) {
-	//todo: loop through files in dir and perform backup on each
+	DIR* dirD = opendir(targetDirPath);
+	if(!dirD) {
+		m_err("Error Reading Target Directory");
+	}
 
+	struct dirent* dir = readdir(dirD);	// read first file
+	while(dir) {	// continue while directory contains items
+		char *name = dir->d_name;
+
+		if ((strcmp(name, ".") != 0) && (strcmp(name, "..") != 0)) {    // don't operate on parent directories
+			if (!opendir(dir->d_name)) {    // item is not another directory
+				char filePath[PATH_MAX];
+				strcpy(filePath, targetDirPath);
+				strcat(filePath, name);
+
+				// perform backup on file
+				backupFile(filePath, destinationDirPath);
+			} // Q: possible recursive backup if it's a directory? And how to handle symbolic links?
+		}
+		dir = readdir(dirD);	// read next file
+	}
 }
 
 
@@ -140,11 +160,6 @@ void backupDir(char* targetDirPath, char* destinationDirPath) {
 int main(int argc, char* argv[]) {
 	// Initialise Primary Index in heap
 	primaryIndex = new PrimaryIndex;
-
-	cout << "0:" << argv[0] << endl;
-	cout << "1:" << argv[1] << endl;
-	cout << "2:" << argv[2] << endl;
-	cout << "3:" << argv[3] << endl;
 
 	if(strcmp(argv[1], "-b")==0) {	// backup directory
 		// set fullpath of target dir
