@@ -31,7 +31,7 @@ typedef set<bin_entry , binEntryCompare> Bin;
 
 //============================================ FILE READING STUFF
 struct mappedFile {
-	unsigned char* contents_ptr;
+	char* contents_ptr;
 	size_t contents_size;
 };
 
