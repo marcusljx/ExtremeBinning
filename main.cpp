@@ -54,6 +54,20 @@ unsigned int fingerprint(unsigned char *arr_ptr) {	// simple fingerprint
 	return (unsigned int) (tally % FINGERPRINT_DIVISOR);	// result will fit definitely within (unsigned int)
 }
 
+string md5_hash(unsigned char* input, size_t size) {
+	unsigned char CHUNK[size];
+	unsigned char DIGEST[MD5_DIGEST_LENGTH];
+	unsigned char hash[MD5_DIGEST_LENGTH * 2];
+	memcpy(CHUNK, input, size);
+	MD5((unsigned char *) &CHUNK, MD5_DIGEST_LENGTH, (unsigned char *) &DIGEST);
+	for(int j=0; j<MD5_DIGEST_LENGTH; j++) {
+		sprintf((char *) &hash[j * 2], "%02x", (unsigned int)DIGEST[j]);
+	}
+
+	string result(reinterpret_cast<const char*> (hash), strlen((const char *) hash));
+	return result;
+}
+
 void chunkFile(char* filePath, Bin* binptr) {
 	// read file into mapped memory
 	int fd = open(filePath, O_RDONLY);
@@ -71,35 +85,27 @@ void chunkFile(char* filePath, Bin* binptr) {
 	unsigned char* chunk_begin = contents;
 	unsigned char* chunk_end;
 
-//	bin_entry* newEntry;
-
 	for(off_t i=0; i<(fileLength-WINDOW_SIZE); i++) {
 		memcpy(slidingWindow, (contents+i), WINDOW_SIZE);
 
 		if((fingerprint(slidingWindow) % SLIDINGWINDOW_DIVISOR == SLIDINGWINDOW_REMAINDER) || (i + WINDOW_SIZE == fileLength - 1 ) ){
 			chunk_end = contents + i + WINDOW_SIZE;
 
-			// FIND CHUNK ID
+			// Isolate Chunk
 			size_t chunkSize = chunk_end - chunk_begin;
 			unsigned char CHUNK[chunkSize];
-			unsigned char DIGEST[MD5_DIGEST_LENGTH];
-			unsigned char ChunkID[MD5_DIGEST_LENGTH*2];
 			memcpy(CHUNK, chunk_begin, chunkSize);
-			MD5((unsigned char *) &CHUNK, MD5_DIGEST_LENGTH, (unsigned char *) &DIGEST);
-			for(int j=0; j<MD5_DIGEST_LENGTH; j++) {
-				sprintf((char *) &ChunkID[j * 2], "%02x", (unsigned int)DIGEST[j]);
-			}
-			cout << "[" << chunkSize << "] \t" << CHUNK << " --> " << ChunkID << " \t";
 
 			// create a new entry in the bin
 			bin_entry newEntry;
-			string tempID(reinterpret_cast<const char*> (ChunkID), strlen((const char *) ChunkID));
-			string tempChunk(reinterpret_cast<const char*> (CHUNK), strlen((const char *) CHUNK));
 
-			newEntry.chunkID = tempID;
+			// calculate chunkID and fill entry
+			newEntry.chunkID = md5_hash(chunk_begin, chunkSize);
 			newEntry.chunkSize = chunkSize;
-			newEntry.chunkContents = tempChunk;
+			newEntry.chunkContents = string(reinterpret_cast<const char*> (CHUNK), strlen((const char *) CHUNK));;
 			binptr->insert(newEntry);
+
+			cout << "[" << chunkSize << "] \t" << newEntry.chunkContents << " --> " << newEntry.chunkID << " \t";
 			cout << "binptr size = " << binptr->size() << endl;
 
 			// set chunk begin to next chunk
@@ -128,6 +134,10 @@ void backupFile(char *filepath, char *destinationDirPath) {	// process for backi
 	cout << "Representative Chunk ID: \t" << repChunkID << endl;
 
 	//todo: check if repChunkID found in primaryIndex and branch as necessary
+	PrimaryIndexEntry* EntryFound = primaryIndex->findEntry(repChunkID);
+	if( EntryFound == nullptr) {	// entry does not exists
+		// calculate whole file hash
+	}
 
 }
 
