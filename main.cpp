@@ -150,11 +150,11 @@ string writeBinToDisk(char *destinationPath, Bin *binptr, vector<string>* recipe
 	ofstream fs_chunks;
 
 	// Prepare to write chunk info to bin
-	char binFile[PATH_MAX];
-	strcpy(binFile, destinationDirPath);
-	strcat(binFile, "_bin.txt");
+	char binFilePath[PATH_MAX];
+	strcpy(binFilePath, destinationDirPath);
+	strcat(binFilePath, "_bin.txt");
 	ofstream fs_forBinAndRecipeFiles;
-	fs_forBinAndRecipeFiles.open(binFile);
+	fs_forBinAndRecipeFiles.open(binFilePath);
 
 	while(iter != binptr->end()) {
 		// create file in directory
@@ -175,8 +175,7 @@ string writeBinToDisk(char *destinationPath, Bin *binptr, vector<string>* recipe
 	}
 	fs_forBinAndRecipeFiles.close();
 
-	//todo: write file recipe to disk
-	// File recipe includes original path, binID, and chunk order. File name is <wholeFileHash>.recipe
+	// File recipe includes binID, original path, and chunk order. File name is r_<wholeFileHash>.recipe
 	char recipeFile[PATH_MAX];
 	strcpy(recipeFile, destinationPath);
 	strcat(recipeFile, "r_");	// r for recipe
@@ -193,7 +192,7 @@ string writeBinToDisk(char *destinationPath, Bin *binptr, vector<string>* recipe
 	}
 	fs_forBinAndRecipeFiles.close();
 
-	return string(destinationDirPath);
+	return string(binFilePath);
 }
 
 void backupFile(char *filepath, char *destinationDirPath) {	// process for backing up a file
@@ -213,14 +212,23 @@ void backupFile(char *filepath, char *destinationDirPath) {	// process for backi
 	string wholeFileHash = md5_hash(mfile->contents_ptr, mfile->contents_size);
 	cout << "Whole File Hash: " << wholeFileHash << endl;
 
-	//todo: check if repChunkID found in primaryIndex and branch as necessary
-	PrimaryIndexEntry* EntryFound = primaryIndex->findEntry(repChunkID);
-	if( EntryFound == nullptr) {	// entry does not exists
+	PrimaryIndexEntry*found_piEntry = primaryIndex->findEntry(repChunkID);
+	if(found_piEntry == nullptr) {	// entry does not exist
 		// Write Chunks, Bin, and Recipe to disk
-		string binPath = writeBinToDisk(destinationDirPath, binptr, recipe_ptr, wholeFileHash);
+		string binFilePath = writeBinToDisk(destinationDirPath, binptr, recipe_ptr, wholeFileHash);
 
 		// Add bin as entry to primary index
-		primaryIndex->addEntry(repChunkID, wholeFileHash, binPath);
+		primaryIndex->addEntry(repChunkID, wholeFileHash, binFilePath);
+	} else {	// entry exists
+		// Compare whole file hash
+		if(found_piEntry->WholeFileHash != wholeFileHash) {	// if whole file hash doesn't match
+			//todo: read binFile and add binFile's chunkIDs into current bin (same as adding current bin's entries into binFile, because all duplicates will be removed)
+
+		} else {
+			cout << "Duplicate file found. need to create recipe" << endl;
+			//todo: add path to recipe file.
+		}
+
 	}
 
 }
