@@ -13,6 +13,7 @@
 #include <dirent.h>
 #include <sys/stat.h>
 #include <fstream>
+#include <limits>
 #include "XB_includes.h"
 #include "PrimaryIndex.h"
 
@@ -24,6 +25,7 @@ using namespace std;
 #define SLIDINGWINDOW_REMAINDER 17
 
 PrimaryIndex* primaryIndex;
+size_t initialTargetDirPathLength;
 
 //extern function declared in XB_includes.h
 bool compareHexStrings(string A, string B) {
@@ -182,8 +184,6 @@ string writeBinToDisk(char *destinationPath, Bin *binptr, vector<string>* recipe
 	strcat(recipeFile, wholeFileHash.c_str());
 	strcat(recipeFile, ".recipe");
 
-	cout << recipeFile << endl;
-
 	// Write order of ChunkIDs to recipe file
 	fs_forBinAndRecipeFiles.open(recipeFile);
 	fs_forBinAndRecipeFiles << repChunkID + "\n";	// add the binID (representative chunkID)
@@ -195,38 +195,62 @@ string writeBinToDisk(char *destinationPath, Bin *binptr, vector<string>* recipe
 	return string(binFilePath);
 }
 
+void addTargetPathToRecipeFile(char* recipeFilePath, string originalFilePath) {	// inserts a duplicate file's filepath in a recipe
+	string lineToAdd = originalFilePath + "\n";
+
+	// Split old recipe at first linebreak
+	char* memblock = (char *) mapFileIntoMem_read(recipeFilePath)->contents_ptr;
+	string contents(memblock);
+	size_t breakpos = contents.find_first_of('\n');
+	string before = contents.substr(0,breakpos);
+	string after = contents.substr(breakpos+1);
+
+	// Write new data to file
+	fstream fs(recipeFilePath);
+	fs << before + "\n" + lineToAdd + after;
+	fs.close();
+}
+
 void backupFile(char *filepath, char *destinationDirPath) {	// process for backing up a file
 	// Chunk file into bin object
 	Bin* binptr = new Bin;
 	vector<string>*recipe_ptr = new vector<string>;
-	recipe_ptr->push_back(string(filepath));	// first entry in recipe is the original filepath.
+
+	// Relative Path from initial target directory
+	string relativePath = string(filepath).substr(initialTargetDirPathLength);	// cut away the number of chars of the initial target dir
+	recipe_ptr->push_back(relativePath);	// first entry in recipe is the original filepath.
+
+	// Chunk the file
 	chunkFile(filepath, binptr, recipe_ptr);
 
 	// Representative Chunk ID is smallest value
 	string repChunkID = (binptr->begin())->chunkID;
-	cout << "Total number of Chunks = " << binptr->size() << endl;
-	cout << "Representative Chunk ID: \t" << repChunkID << endl;
 
 	// Calculate whole file hash
 	mappedFile* mfile = mapFileIntoMem_read(filepath);
 	string wholeFileHash = md5_hash(mfile->contents_ptr, mfile->contents_size);
-	cout << "Whole File Hash: " << wholeFileHash << endl;
 
 	PrimaryIndexEntry*found_piEntry = primaryIndex->findEntry(repChunkID);
 	if(found_piEntry == nullptr) {	// entry does not exist
 		// Write Chunks, Bin, and Recipe to disk
 		string binFilePath = writeBinToDisk(destinationDirPath, binptr, recipe_ptr, wholeFileHash);
-
-		// Add bin as entry to primary index
+		// Add bin (entry) to primary index
 		primaryIndex->addEntry(repChunkID, wholeFileHash, binFilePath);
+
 	} else {	// entry exists
 		// Compare whole file hash
 		if(found_piEntry->WholeFileHash != wholeFileHash) {	// if whole file hash doesn't match
 			//todo: read binFile and add binFile's chunkIDs into current bin (same as adding current bin's entries into binFile, because all duplicates will be removed)
 
 		} else {
-			cout << "Duplicate file found. need to create recipe" << endl;
-			//todo: add path to recipe file.
+			// Reconstruct Recipe File Path
+			char recipeFilePath[PATH_MAX];
+			strcpy(recipeFilePath, destinationDirPath);
+			strcat(recipeFilePath, "r_");
+			strcat(recipeFilePath, wholeFileHash.c_str());
+			strcat(recipeFilePath, ".recipe");
+
+			addTargetPathToRecipeFile(recipeFilePath, (*recipe_ptr)[0]);	// first entry in recipe is target file path
 		}
 
 	}
@@ -239,21 +263,28 @@ void backupDir(char* targetDirPath, char* destinationDirPath) {
 		m_err("Error Reading Target Directory");
 	}
 
-	struct dirent* dir = readdir(dirD);	// read first file
-	while(dir) {	// read through directory items
-		char *name = dir->d_name;
+	struct dirent* item;	// read first file
+	struct stat st;
+	item = readdir(dirD);
+	while(item) {	// read through directory items
+		char *name = item->d_name;
+		char filePath[PATH_MAX];
+		strcpy(filePath, targetDirPath);
+		strcat(filePath, name);
 
 		if ((strcmp(name, ".") != 0) && (strcmp(name, "..") != 0)) {    // don't operate on parent directories
-			if (!opendir(dir->d_name)) {    // item is not another directory
-				char filePath[PATH_MAX];
-				strcpy(filePath, targetDirPath);
-				strcat(filePath, name);
+			if(lstat(filePath, &st) != 0) m_err("Error calling lstat() on file.");	// check for directory or file
+
+			// item is not another directory
+			if(S_ISREG(st.st_mode)) {
 
 				// perform backup on file
 				backupFile(filePath, destinationDirPath);
-			} // Q: possible recursive backup if it's a directory? And how to handle symbolic links?
+			} else {
+				cout << "Item is Directory" << endl;
+			}
 		}
-		dir = readdir(dirD);	// read next file
+		item = readdir(dirD);
 	}
 }
 
@@ -269,6 +300,7 @@ int main(int argc, char* argv[]) {
 		getcwd(targetDir, PATH_MAX);
 		strcat(targetDir, "/");
 		strcat(targetDir, argv[2]);
+		initialTargetDirPathLength = strlen(targetDir);	// set length of path (used for finding relative path for recipe)
 
 		// set fullpath of destination dir
 		char destDir[PATH_MAX];
