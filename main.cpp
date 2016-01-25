@@ -11,15 +11,17 @@
 #include <bits/stl_set.h>
 #include <linux/limits.h>
 #include <dirent.h>
+#include <sys/stat.h>
+#include <fstream>
 #include "XB_includes.h"
 #include "PrimaryIndex.h"
 
 using namespace std;
 
-#define WINDOW_SIZE 16
-#define FINGERPRINT_DIVISOR 5
-#define SLIDINGWINDOW_DIVISOR 3
-#define SLIDINGWINDOW_REMAINDER 2
+#define WINDOW_SIZE 32
+#define FINGERPRINT_DIVISOR 31
+#define SLIDINGWINDOW_DIVISOR 29
+#define SLIDINGWINDOW_REMAINDER 17
 
 PrimaryIndex* primaryIndex;
 
@@ -127,9 +129,41 @@ void chunkFile(char* filePath, Bin* binptr) {
 }
 
 string writeBinToDisk(char *destinationPath, Bin *binptr, string wholeFileHash) {	// writes a bin to disk, returns path to bin location
-	//todo: write chunks to disk (files in binfolder)		// eg. <repChunkId>/
+	string repChunkID = binptr->begin()->chunkID;	// using representative chunk id as directory name
+	char destinationDirPath[PATH_MAX];
+	strcpy(destinationDirPath, destinationPath);
+	strcat(destinationDirPath, repChunkID.c_str());
+
+	// Create directory for chunks
+	if(mkdir(destinationDirPath, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH) != 0 ) {
+		if(errno == EEXIST) {
+			errno = 0;	// ignore error if bin directory already exists.
+		} else {
+			m_err("Error Creating Chunks Folder " + repChunkID);	// otherwise exit.
+		}
+	}
+	// Write chunks to directory
+	set<bin_entry , binEntryCompare>::iterator iter = binptr->begin();
+	char destinationFilePath[PATH_MAX];
+	while(iter != binptr->end()) {
+		// create file in directory
+		strcpy(destinationFilePath, destinationDirPath);
+		strcat(destinationFilePath, "/");
+		strcat(destinationFilePath, (*iter).chunkID.c_str());
+
+		// write chunk content to chunk file (OVERWRITES FILE WITH SAME DATA(?) IF FILE EXISTS)
+		ofstream fs;
+		fs.open(destinationFilePath);
+		fs << (*iter).chunkContents;
+		fs.close();
+
+		iter++;
+	}
 
 	//todo: write bin to disk (single file with details)	// eg. <repChunkId>_B.txt
+
+
+	//todo: write file recipe to disk
 }
 
 void backupFile(char *filepath, char *destinationDirPath) {	// process for backing up a file
@@ -149,6 +183,7 @@ void backupFile(char *filepath, char *destinationDirPath) {	// process for backi
 	//todo: check if repChunkID found in primaryIndex and branch as necessary
 	PrimaryIndexEntry* EntryFound = primaryIndex->findEntry(repChunkID);
 	if( EntryFound == nullptr) {	// entry does not exists
+		// Write Chunks to disk
 		string binPath = writeBinToDisk(destinationDirPath, binptr, wholeFileHash);
 
 		// Add bin as entry to primary index
