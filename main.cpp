@@ -44,6 +44,20 @@ void m_err(string error_message) {
 	exit(EXIT_FAILURE);
 }
 
+mappedFile* mapFileIntoMem_read(char* filePath) {
+	int fd = open(filePath, O_RDONLY);
+	if(fd==-1) m_err("Error reading file.");
+
+	// assign mmap
+	mappedFile* mf = new mappedFile;
+	mf->contents_size = lseek(fd, 0, SEEK_END);
+	mf->contents_ptr = (unsigned char*) mmap(NULL, mf->contents_size, PROT_READ, MAP_SHARED, fd, 0);
+	if(mf->contents_ptr == NULL) m_err("Error setting memory pointer.");
+	close(fd);
+
+	return mf;
+}
+
 unsigned int fingerprint(unsigned char *arr_ptr) {	// simple fingerprint
 	unsigned long tally = 0;
 	int size = sizeof(arr_ptr)/ sizeof(unsigned char);
@@ -69,15 +83,9 @@ string md5_hash(unsigned char* input, size_t size) {
 }
 
 void chunkFile(char* filePath, Bin* binptr) {
-	// read file into mapped memory
-	int fd = open(filePath, O_RDONLY);
-	if(fd==-1) m_err("Error reading file.");
-
-	// assign mmap
-	off_t fileLength = lseek(fd, 0, SEEK_END);
-	unsigned char* contents = (unsigned char*) mmap(NULL, fileLength, PROT_READ, MAP_SHARED, fd, 0);
-	if(contents==NULL) m_err("Error setting memory pointer.");
-	close(fd);
+	mappedFile* mf = mapFileIntoMem_read(filePath);
+	unsigned char* contents = mf->contents_ptr;
+	size_t fileLength = mf->contents_size;
 
 	// containers for hashing
 	unsigned char slidingWindow[WINDOW_SIZE];
@@ -133,10 +141,13 @@ void backupFile(char *filepath, char *destinationDirPath) {	// process for backi
 	cout << "Total number of Chunks = " << binptr->size() << endl;
 	cout << "Representative Chunk ID: \t" << repChunkID << endl;
 
+	//todo: calculate whole file hash
+
+
 	//todo: check if repChunkID found in primaryIndex and branch as necessary
 	PrimaryIndexEntry* EntryFound = primaryIndex->findEntry(repChunkID);
 	if( EntryFound == nullptr) {	// entry does not exists
-		// calculate whole file hash
+
 	}
 
 }

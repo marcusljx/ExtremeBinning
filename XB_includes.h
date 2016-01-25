@@ -11,6 +11,7 @@
 
 using namespace std;
 
+//=========================================== BIN STUFF
 struct bin_entry {
 	string chunkID;
 	size_t chunkSize;
@@ -27,5 +28,13 @@ struct binEntryCompare {
 };
 
 typedef set<bin_entry , binEntryCompare> Bin;
+
+//============================================ FILE READING STUFF
+struct mappedFile {
+	unsigned char* contents_ptr;
+	size_t contents_size;
+};
+
+
 
 #endif //EXTREMEBINNING_XB_INCLUDES_H
