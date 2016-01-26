@@ -14,7 +14,7 @@
 
 using namespace std;
 
-string backupDirPath;
+string targetDirPath;
 string restoreDirPath;
 
 void m_err(string error_message) {
@@ -59,7 +59,7 @@ void restoreRecipeFile(string recipeFilePath) {		// Restores a file and its dupl
 	while(fs >> line) {
 		if(lineCount == 0) {
 			// first line refers to bin
-			binPath = backupDirPath + line;
+			binPath = targetDirPath + line;
 //			cout << "BINPATH: \t" << binPath << endl;
 
 		} else {
@@ -113,9 +113,9 @@ void restoreRecipeFile(string recipeFilePath) {		// Restores a file and its dupl
 }
 
 void restoreDir() {
-	DIR* dirD = opendir(backupDirPath.c_str());
+	DIR* dirD = opendir(targetDirPath.c_str());
 	if(!dirD) {
-		m_err("Error Reading Target Directory (" + backupDirPath + ")");
+		m_err("Error Reading Target Directory (" + targetDirPath + ")");
 	}
 
 	struct dirent* item;	// read first file
@@ -124,14 +124,13 @@ void restoreDir() {
 		string name = string(item->d_name);
 
 		if(name.substr(0,2) == "r_") {	// only operate on recipe files
-			string filePath = backupDirPath + name;
+			string filePath = targetDirPath + name;
 			restoreRecipeFile(filePath);
 			cout << "================================" << endl;
 		}
 
 		item = readdir(dirD);
 	}
-
 }
 
 int main(int argc, char* argv[]) {
@@ -143,9 +142,23 @@ int main(int argc, char* argv[]) {
 	getcwd(temp, PATH_MAX);
 	string cwd(temp);
 
-	backupDirPath = cwd + "/" + string(argv[1]);
-	restoreDirPath = cwd + "/" + string(argv[2]);
+	// Check if input is absolute path or relative
+	string targetPath(argv[1]);
+	if( (targetPath[0] == '~') || (targetPath[0] == '/') ) {	// absolute path given
+		targetDirPath = targetPath;
+	} else {
+		targetDirPath = cwd + "/" + targetPath;	// otherwise use relative path
+	}
 
+	// Check if input is absolute path or relative
+	string destPath(argv[2]);
+	if( (destPath[0] == '~') || (destPath[0] == '/') ) {	// absolute path given
+		restoreDirPath = destPath;
+	} else {
+		restoreDirPath = cwd + "/" + destPath;	// otherwise use relative path
+	}
+
+	// Create Restore Directory if necessary
 	if(mkdir(restoreDirPath.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH) != 0 ) {
 		if(errno == EEXIST) {
 			errno = 0;	// ignore error if bin directory already exists.
@@ -156,4 +169,5 @@ int main(int argc, char* argv[]) {
 
 	restoreDir();
 
+	return 0;
 }

@@ -301,26 +301,39 @@ int main(int argc, char* argv[]) {
 	}
 
 	// set fullpath of target dir
-	char cwd[PATH_MAX];
-	getcwd(cwd, PATH_MAX);
+	char temp[PATH_MAX];
+	getcwd(temp, PATH_MAX);
+	string cwd(temp);
 
-	string targetDir(cwd);
-	targetDir += "/" + string(argv[1]);
-	initialTargetDirPathLength = targetDir.size();	// set length of path (used for finding relative path for recipe)
+	// Check if input is absolute path or relative
+	string targetPath(argv[1]);
+	string targetFullPath;
+	if((targetPath[0] == '~') || (targetPath[0] == '/') ) {	// absolute path given
+		targetFullPath = targetPath;
+	} else {
+		targetFullPath = cwd + "/" + targetPath;	// otherwise use relative path
+	}
+	initialTargetDirPathLength = targetFullPath.size();	// set length of path (used for finding relative path for recipe)
 
-	// set fullpath of destination dir
-	string destDir(cwd);
-	destDir += "/" + string(argv[2]);
+	// Check if input is absolute path or relative
+	string destinationPath(argv[2]);
+	string destinationFullPath;
+	if((destinationPath[0] == '~') || (destinationPath[0] == '/') ) {	// absolute path given
+		destinationFullPath = destinationPath;
+	} else {
+		destinationFullPath = cwd + "/" + destinationPath;	// otherwise use relative path
+	}
 
-	if(mkdir(destDir.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH) != 0 ) {
+	// Create Backup Directory if necessary
+	if(mkdir(destinationFullPath.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH) != 0 ) {
 		if(errno == EEXIST) {
 			errno = 0;	// ignore error if directory already exists.
 		} else {
-			m_err("Error Creating Backup Destination Folder " + destDir);	// otherwise exit.
+			m_err("Error Creating Backup Destination Folder " + destinationFullPath);	// otherwise exit.
 		}
 	}
 
-	backupDir(targetDir, destDir);
+	backupDir(targetFullPath, destinationFullPath);
 
 
 	return 0;
