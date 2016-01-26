@@ -105,7 +105,7 @@ void chunkFile(string filePath, Bin* binptr, vector<string>* recipe) {
 			chunk_end = (contents+i) + WINDOW_SIZE;
 
 			// Isolate Chunk
-			size_t chunkSize = chunk_end - chunk_begin;
+			size_t chunkSize = chunk_end - chunk_begin + 1;
 			string CHUNK(chunk_begin, chunkSize);
 
 			// create a new entry in the bin
