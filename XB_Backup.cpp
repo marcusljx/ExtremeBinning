@@ -134,9 +134,9 @@ string writeBinAndRecipeToDisk(string destinationPath, Bin *binptr, vector<strin
 	// Create directory for chunks
 	if(mkdir(destinationDirPath.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH) != 0 ) {
 		if(errno == EEXIST) {
-			errno = 0;	// ignore error if bin directory already exists.
+			errno = 0;	// ignore error if directory already exists.
 		} else {
-			m_err("Error Creating Chunks Folder " + repChunkID);	// otherwise exit.
+			m_err("Error Creating Chunks Folder " + destinationDirPath);	// otherwise exit.
 		}
 	}
 	// Prepare to write chunks to directory
@@ -311,6 +311,14 @@ int main(int argc, char* argv[]) {
 	// set fullpath of destination dir
 	string destDir(cwd);
 	destDir += "/" + string(argv[2]);
+
+	if(mkdir(destDir.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH) != 0 ) {
+		if(errno == EEXIST) {
+			errno = 0;	// ignore error if directory already exists.
+		} else {
+			m_err("Error Creating Backup Destination Folder " + destDir);	// otherwise exit.
+		}
+	}
 
 	backupDir(targetDir, destDir);
 

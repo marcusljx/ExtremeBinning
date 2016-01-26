@@ -146,6 +146,14 @@ int main(int argc, char* argv[]) {
 	backupDirPath = cwd + "/" + string(argv[1]);
 	restoreDirPath = cwd + "/" + string(argv[2]);
 
+	if(mkdir(restoreDirPath.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH) != 0 ) {
+		if(errno == EEXIST) {
+			errno = 0;	// ignore error if bin directory already exists.
+		} else {
+			m_err("Error Creating Backup Destination Folder " + restoreDirPath);	// otherwise exit.
+		}
+	}
+
 	restoreDir();
 
 }
