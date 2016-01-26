@@ -231,6 +231,7 @@ void backupFile(string filepath, string destinationDirPath) {	// process for bac
 	// Calculate whole file hash
 	mappedFile* mfile = mapFileIntoMem_read(filepath);
 	string wholeFileHash = md5_hash(mfile->contents_ptr);
+	munmap(mfile->contents_ptr, mfile->contents_size);
 	cout << "## \t" << wholeFileHash << endl;
 
 	PrimaryIndexEntry*found_piEntry = primaryIndex->findEntry(repChunkID);
