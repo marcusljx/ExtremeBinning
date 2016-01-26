@@ -172,7 +172,7 @@ string writeBinAndRecipeToDisk(string destinationPath, Bin *binptr, vector<strin
 
 	// Write order of ChunkIDs to recipe file
 	fs_forBinAndRecipeFiles.open(recipeFile);
-	fs_forBinAndRecipeFiles << repChunkID + "\n";	// add the binID (representative chunkID)
+	fs_forBinAndRecipeFiles << repChunkID + "\n\t";	// add the binID (representative chunkID). Tab for filepath line
 	for(int i=0; i<recipe_ptr->size(); i++) {	// first entry is original filepath, the rest are order of the chunks
 		fs_forBinAndRecipeFiles << (*recipe_ptr)[i] + "\n";
 	}
@@ -205,7 +205,7 @@ void addTargetPathToRecipeFile(string recipeFilePath, string originalFilePath) {
 
 	// Write new data to file
 	fstream fs(recipeFilePath);
-	fs << before + "\n" + lineToAdd + after;
+	fs << before + "\n\t" + lineToAdd + after;
 	fs.close();
 }
 
@@ -235,6 +235,7 @@ void backupFile(string filepath, string destinationDirPath) {	// process for bac
 	if(found_piEntry == nullptr) {	// entry does not exist
 		// Write Chunks, Bin, and Recipe to disk
 		string binFilePath = writeBinAndRecipeToDisk(destinationDirPath, binptr, recipe_ptr, wholeFileHash);
+
 		// Add bin (entry) to primary index
 		primaryIndex->addEntry(repChunkID, wholeFileHash, binFilePath);
 
@@ -254,7 +255,6 @@ void backupFile(string filepath, string destinationDirPath) {	// process for bac
 			addTargetPathToRecipeFile(recipeFilePath, (*recipe_ptr)[0]);	// first entry in recipe is target file path
 		}
 	}
-	cout << endl;
 }
 
 void backupDir(string targetDirPath, string destinationDirPath) {
@@ -294,7 +294,7 @@ int main(int argc, char* argv[]) {
 	primaryIndex = new PrimaryIndex;
 
 	if(argc != 3) {
-		m_err("Error: Too Few Arguments\nUsage: XB_Backup <TargetDir> <DestinationDir>");
+		m_err("Error: Wrong Number of Arguments\nUsage: XB_Backup <TargetDir> <DestinationDir>");
 	}
 
 	// set fullpath of target dir
