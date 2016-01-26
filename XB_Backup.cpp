@@ -25,6 +25,8 @@ using namespace std;
 PrimaryIndex* primaryIndex;
 size_t initialTargetDirPathLength;
 
+const string pathIdentifierPrefix = "#";
+
 //extern function declared in XB_includes.h
 bool compareHexStrings(string A, string B) {
 	if(A.size() == B.size()) { // sizes same, compare characters
@@ -172,7 +174,7 @@ string writeBinAndRecipeToDisk(string destinationPath, Bin *binptr, vector<strin
 
 	// Write order of ChunkIDs to recipe file
 	fs_forBinAndRecipeFiles.open(recipeFile);
-	fs_forBinAndRecipeFiles << repChunkID + "\n\t";	// add the binID (representative chunkID). Tab for filepath line
+	fs_forBinAndRecipeFiles << repChunkID + "\n" + pathIdentifierPrefix;	// add the binID (representative chunkID) and prefix for path on next line
 	for(int i=0; i<recipe_ptr->size(); i++) {	// first entry is original filepath, the rest are order of the chunks
 		fs_forBinAndRecipeFiles << (*recipe_ptr)[i] + "\n";
 	}
@@ -205,7 +207,7 @@ void addTargetPathToRecipeFile(string recipeFilePath, string originalFilePath) {
 
 	// Write new data to file
 	fstream fs(recipeFilePath);
-	fs << before + "\n\t" + lineToAdd + after;
+	fs << before + "\n" + pathIdentifierPrefix + lineToAdd + after;
 	fs.close();
 }
 
