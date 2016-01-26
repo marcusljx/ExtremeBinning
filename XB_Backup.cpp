@@ -260,7 +260,7 @@ void backupFile(string filepath, string destinationDirPath) {	// process for bac
 void backupDir(string targetDirPath, string destinationDirPath) {
 	DIR* dirD = opendir(targetDirPath.c_str());
 	if(!dirD) {
-		m_err("Error Reading Target Directory");
+		m_err("Error Reading Target Directory (" + targetDirPath + ")");
 	}
 
 	struct dirent* item;	// read first file
